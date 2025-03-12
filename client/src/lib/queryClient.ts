@@ -9,7 +9,7 @@ async function throwIfResNotOk(res: Response) {
     } catch {
       errorMsg = await res.text() || res.statusText;
     }
-    
+
     const error = new Error(`${res.status}: ${errorMsg}`);
     // Add status to the error object for better error handling
     (error as any).status = res.status;
@@ -26,7 +26,7 @@ export async function apiRequest(
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
+    credentials: "include", // Always include credentials
   });
 
   await throwIfResNotOk(res);
@@ -40,7 +40,7 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
+      credentials: "include", // Always include credentials
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
