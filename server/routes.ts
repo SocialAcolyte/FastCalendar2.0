@@ -11,7 +11,6 @@ interface ExtendedWebSocket extends WebSocket {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Set up authentication
   setupAuth(app);
 
   const httpServer = createServer(app);
@@ -55,40 +54,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/events", async (req, res, next) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    try {
-      const validatedEvent = await eventValidationSchema.parseAsync(req.body);
-      const event = await storage.createEvent({
-        ...validatedEvent,
-        user_id: req.user.id
-      });
-
-      broadcastEvents(req.user.id);
-      res.status(201).json(event);
-    } catch (err) {
-      next(err);
-    }
-  });
-
   app.post("/api/events/batch", async (req, res, next) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
 
     try {
+      // Parse events with today's date
       const parsedEvents = await parseMultipleEvents(req.body.text);
+
+      // Create all events
       const createdEvents = await Promise.all(
         parsedEvents.map(event =>
           storage.createEvent({
             ...event,
             user_id: req.user.id,
-            color: "#3788d8",
             start: new Date(event.start),
-            end: new Date(event.end)
+            end: new Date(event.end),
+            color: "#3788d8",
+            recurring: false,
+            recurrence_pattern: null,
+            shared_with: []
           })
         )
       );
@@ -96,6 +82,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       broadcastEvents(req.user.id);
       res.status(201).json(createdEvents);
     } catch (err) {
+      console.error('Failed to create batch events:', err);
       next(err);
     }
   });
