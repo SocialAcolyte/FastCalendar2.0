@@ -50,6 +50,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Single event creation route
+  app.post("/api/events", async (req, res, next) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    try {
+      const event = await storage.createEvent({
+        ...req.body,
+        user_id: req.user.id,
+        start: new Date(req.body.start),
+        end: new Date(req.body.end),
+        color: req.body.color || "#3788d8",
+        recurring: false,
+        category: req.body.category || null,
+        shared_with: []
+      });
+
+      broadcastEvents(req.user.id);
+      res.status(201).json(event);
+    } catch (err) {
+      console.error('Failed to create event:', err);
+      next(err);
+    }
+  });
+
   // Simple event batch creation with basic time parsing
   app.post("/api/events/batch", async (req, res, next) => {
     if (!req.isAuthenticated()) {

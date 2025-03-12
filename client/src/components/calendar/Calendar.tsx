@@ -104,7 +104,7 @@ function EventDialog({ event, isOpen, onClose, onSubmit, onDelete }: {
 
   return (
     <Dialog open={isOpen} onOpenChange={() => onClose()}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>{event?.id ? "Edit Event" : "New Event"}</DialogTitle>
         </DialogHeader>
@@ -124,7 +124,6 @@ function EventDialog({ event, isOpen, onClose, onSubmit, onDelete }: {
               value={start}
               onChange={(e) => setStart(e.target.value)}
               required
-              step="300"
             />
           </div>
           <div>
@@ -134,7 +133,6 @@ function EventDialog({ event, isOpen, onClose, onSubmit, onDelete }: {
               value={end}
               onChange={(e) => setEnd(e.target.value)}
               required
-              step="300"
             />
           </div>
           <div>
@@ -215,6 +213,13 @@ export default function Calendar() {
         description: "Event created successfully",
       });
     },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   const updateEventMutation = useMutation({
@@ -270,6 +275,7 @@ export default function Calendar() {
 
   const handleSelectSlot = useCallback(
     ({ start, end }: { start: Date; end: Date }) => {
+      // For month view, set a default duration of 1 hour
       if (view === "month") {
         end = addMinutes(start, 60);
       }
