@@ -251,6 +251,24 @@ export default function Calendar() {
 
   const handleEventSubmit = async (event: Partial<Event>) => {
     try {
+      // Generate a temporary ID for new events
+      const tempEvent = {
+        ...event,
+        id: event.id || Math.random() * -1000000,
+        user_id: user?.id || 0,
+      };
+
+      // Optimistically update the UI
+      queryClient.setQueryData<Event[]>(["/api/events"], (old = []) => {
+        if (event.id) {
+          // Update existing event
+          return old.map((e) => (e.id === event.id ? tempEvent : e));
+        }
+        // Add new event
+        return [...old, tempEvent];
+      });
+
+      // Make the API call
       if (event.id) {
         await updateEventMutation.mutateAsync(event);
       } else {
@@ -258,17 +276,36 @@ export default function Calendar() {
       }
       setSelectedEvent(null);
     } catch (error) {
+      // Revert optimistic update on error
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       console.error("Failed to save event:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save event. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleEventDelete = async () => {
     if (selectedEvent?.id) {
       try {
+        // Optimistically update the UI
+        queryClient.setQueryData<Event[]>(["/api/events"], (old = []) =>
+          old.filter((e) => e.id !== selectedEvent.id)
+        );
+
         await deleteEventMutation.mutateAsync(selectedEvent.id);
         setSelectedEvent(null);
       } catch (error) {
+        // Revert optimistic update on error
+        queryClient.invalidateQueries({ queryKey: ["/api/events"] });
         console.error("Failed to delete event:", error);
+        toast({
+          title: "Error",
+          description: "Failed to delete event. Please try again.",
+          variant: "destructive",
+        });
       }
     }
   };
