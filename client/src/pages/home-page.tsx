@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import Calendar from "@/components/calendar/Calendar";
+import EventInput from "@/components/calendar/EventInput";
 import LifeTimeline from "@/components/life/LifeTimeline";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
@@ -34,14 +35,15 @@ export default function HomePage() {
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Calendar Section */}
-          <div className="lg:col-span-2">
-            <Calendar />
+          {/* Left Sidebar - Event Input */}
+          <div className="space-y-6">
+            <EventInput />
+            <LifeTimeline />
           </div>
 
-          {/* Life Timeline Section */}
-          <div>
-            <LifeTimeline />
+          {/* Main Calendar Area */}
+          <div className="lg:col-span-2">
+            <Calendar />
           </div>
         </div>
       </div>
