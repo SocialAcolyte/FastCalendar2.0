@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { analyzeEventText, suggestEvents } from "./ai";
+import { analyzeEventText, parseMultipleEvents, suggestEvents } from "./ai";
 import { eventValidationSchema } from "@shared/schema";
 
 interface ExtendedWebSocket extends WebSocket {
@@ -69,6 +69,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       broadcastEvents(req.user.id);
       res.status(201).json(event);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post("/api/events/batch", async (req, res, next) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    try {
+      const parsedEvents = await parseMultipleEvents(req.body.text);
+      const createdEvents = await Promise.all(
+        parsedEvents.map(event =>
+          storage.createEvent({
+            ...event,
+            user_id: req.user.id,
+            color: "#3788d8"
+          })
+        )
+      );
+
+      broadcastEvents(req.user.id);
+      res.status(201).json(createdEvents);
     } catch (err) {
       next(err);
     }

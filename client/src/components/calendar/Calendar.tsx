@@ -18,7 +18,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Maximize2, Minimize2 } from "lucide-react";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
 const localizer = dateFnsLocalizer({
@@ -30,6 +30,14 @@ const localizer = dateFnsLocalizer({
 });
 
 const views: View[] = ["month", "week", "day", "agenda"];
+
+type CalendarSize = "normal" | "medium" | "large";
+
+const calendarSizes: Record<CalendarSize, string> = {
+  normal: "h-[calc(100vh-280px)]",
+  medium: "h-[calc(100vh-200px)]",
+  large: "h-[calc(100vh-120px)]",
+};
 
 interface EventDialogProps {
   event: Partial<Event> | null;
@@ -94,6 +102,7 @@ function EventDialog({ event, isOpen, onClose, onSubmit, onDelete }: EventDialog
               value={start}
               onChange={(e) => setStart(e.target.value)}
               required
+              step="300"
             />
           </div>
           <div>
@@ -103,6 +112,7 @@ function EventDialog({ event, isOpen, onClose, onSubmit, onDelete }: EventDialog
               value={end}
               onChange={(e) => setEnd(e.target.value)}
               required
+              step="300"
             />
           </div>
           <div>
@@ -143,7 +153,8 @@ function EventDialog({ event, isOpen, onClose, onSubmit, onDelete }: EventDialog
 
 export default function CalendarComponent() {
   const [selectedEvent, setSelectedEvent] = useState<Partial<Event> | null>(null);
-  const [view, setView] = useState<View>("month");
+  const [view, setView] = useState<View>("week");
+  const [size, setSize] = useState<CalendarSize>("normal");
   const { user } = useAuth();
   const { toast } = useToast();
   const socket = useWebSocket((state) => state.socket);
@@ -177,7 +188,10 @@ export default function CalendarComponent() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
-      toast({ title: "Event created successfully" });
+      toast({
+        title: "Success",
+        description: "Event created successfully",
+      });
     },
   });
 
@@ -188,7 +202,10 @@ export default function CalendarComponent() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
-      toast({ title: "Event updated successfully" });
+      toast({
+        title: "Success",
+        description: "Event updated successfully",
+      });
     },
   });
 
@@ -198,7 +215,10 @@ export default function CalendarComponent() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
-      toast({ title: "Event deleted successfully" });
+      toast({
+        title: "Success",
+        description: "Event deleted successfully",
+      });
     },
   });
 
@@ -228,7 +248,6 @@ export default function CalendarComponent() {
 
   const handleSelectSlot = useCallback(
     ({ start, end }: { start: Date; end: Date }) => {
-      // For clicks/selections on month view, set a default duration
       if (view === "month") {
         end = addMinutes(start, 60);
       }
@@ -236,6 +255,12 @@ export default function CalendarComponent() {
     },
     [view]
   );
+
+  const nextSize = (current: CalendarSize): CalendarSize => {
+    const sizes: CalendarSize[] = ["normal", "medium", "large"];
+    const currentIndex = sizes.indexOf(current);
+    return sizes[(currentIndex + 1) % sizes.length];
+  };
 
   if (isLoading) {
     return (
@@ -247,7 +272,7 @@ export default function CalendarComponent() {
 
   return (
     <Card className="p-4">
-      <div className="mb-4">
+      <div className="mb-4 flex justify-between items-center">
         <div className="flex gap-2">
           {views.map((v) => (
             <Button
@@ -260,8 +285,19 @@ export default function CalendarComponent() {
             </Button>
           ))}
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setSize(nextSize(size))}
+        >
+          {size === "large" ? (
+            <Minimize2 className="h-4 w-4" />
+          ) : (
+            <Maximize2 className="h-4 w-4" />
+          )}
+        </Button>
       </div>
-      <div className="h-[calc(100vh-280px)]">
+      <div className={calendarSizes[size]}>
         <BigCalendar
           localizer={localizer}
           events={events}
@@ -273,12 +309,15 @@ export default function CalendarComponent() {
           onSelectEvent={(event) => setSelectedEvent(event)}
           onSelectSlot={handleSelectSlot}
           selectable
+          step={5}
+          timeslots={12}
           eventPropGetter={(event: Event) => ({
             style: {
               backgroundColor: event.color || "#3788d8",
               borderRadius: "4px",
               border: "none",
               padding: "2px 4px",
+              fontSize: size === "large" ? "14px" : "12px",
             },
           })}
           dayPropGetter={(date) => ({

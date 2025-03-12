@@ -5,89 +5,89 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Info } from "lucide-react";
 
 export default function EventInput() {
   const [inputText, setInputText] = useState("");
   const { toast } = useToast();
 
-  const analyzeEventMutation = useMutation({
+  const batchCreateEventsMutation = useMutation({
     mutationFn: async (text: string) => {
-      const res = await apiRequest("POST", "/api/analyze-event", { text });
-      return res.json();
-    },
-    onSuccess: async (data) => {
-      try {
-        await createEventMutation.mutateAsync({
-          title: data.suggestedTitle,
-          start: new Date(data.suggestedTime.start),
-          end: new Date(data.suggestedTime.end),
-          category: data.category,
-        });
-        setInputText("");
-        toast({
-          title: "Event created",
-          description: "Successfully added event to calendar",
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to create event",
-          variant: "destructive",
-        });
-      }
-    },
-  });
-
-  const createEventMutation = useMutation({
-    mutationFn: async (event: any) => {
-      const res = await apiRequest("POST", "/api/events", event);
+      const res = await apiRequest("POST", "/api/events/batch", { text });
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      setInputText("");
+      toast({
+        title: "Events created",
+        description: "Successfully added multiple events to calendar",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: "Failed to create events: " + error.message,
+        variant: "destructive",
+      });
     },
   });
 
   const handleSubmit = async () => {
     if (!inputText.trim()) return;
-    analyzeEventMutation.mutate(inputText);
+    batchCreateEventsMutation.mutate(inputText);
   };
 
   const examples = [
-    "Lunch with John tomorrow at 12:30 PM for 1 hour",
-    "Weekly team meeting every Monday at 10 AM for 1 hour",
-    "Dentist appointment next Tuesday at 2 PM",
-    "Vacation from July 1st to July 15th",
+    "Gym Workout 6:00-7:00 am; Team Meeting 9:30-10:30 am; Lunch Break 12:00-1:00 pm",
+    "Wake Up 5:50-5:55 am; Hydrate & Stretch 5:55-6:00 am; Exercise 6:00-6:30 am",
+    "Morning Routine 7:00-7:30 am; Commute 7:30-8:00 am; Work 8:00-5:00 pm",
   ];
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Quick Add Events</CardTitle>
+        <CardTitle className="flex items-center justify-between">
+          Batch Event Input
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={() =>
+              toast({
+                title: "Input Format",
+                description:
+                  "Enter multiple events separated by semicolons. Format: 'Event Title Start-End Time'. Example: 'Meeting 9:00-10:00 am; Lunch 12:00-1:00 pm'",
+              })
+            }
+          >
+            <Info className="h-4 w-4" />
+          </Button>
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           <Textarea
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="Enter event details naturally, e.g., 'Lunch with John tomorrow at 12:30 PM for 1 hour'"
-            className="min-h-[100px]"
+            placeholder="Enter multiple events separated by semicolons. Example: 'Meeting 9:00-10:00 am; Lunch 12:00-1:00 pm'"
+            className="min-h-[100px] font-mono"
           />
           <Button
             onClick={handleSubmit}
             className="w-full"
-            disabled={analyzeEventMutation.isPending || !inputText.trim()}
+            disabled={batchCreateEventsMutation.isPending || !inputText.trim()}
           >
-            {analyzeEventMutation.isPending ? (
+            {batchCreateEventsMutation.isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Processing...
               </>
             ) : (
-              "Add Event"
+              "Add Events"
             )}
           </Button>
+
           <div className="mt-4">
             <p className="text-sm text-muted-foreground mb-2">Examples:</p>
             <div className="grid gap-2">
@@ -95,7 +95,7 @@ export default function EventInput() {
                 <Button
                   key={index}
                   variant="outline"
-                  className="justify-start"
+                  className="justify-start text-left h-auto whitespace-normal"
                   onClick={() => setInputText(example)}
                 >
                   {example}
