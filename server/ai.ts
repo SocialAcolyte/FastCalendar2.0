@@ -44,10 +44,20 @@ export async function parseMultipleEvents(text: string): Promise<Array<{
         {
           role: "system",
           content: `Parse multiple events from a semicolon-separated list. Each event should have a title and time range.
-            Convert time formats (like "5:50-5:55 am") to ISO format.
+            Convert time formats (like "5:50-5:55 am") to ISO format with today's date.
+            Handle event descriptions that may contain colons.
             Return a JSON array of events with { title, start, end, category }.
-            Example input: "Wake Up 5:50-5:55 am; Hydrate & Stretch 5:55-6:00 am"
-            Handle both AM/PM and 24-hour formats.`
+
+            Example input formats:
+            - "Wake Up 5:50-5:55 am"
+            - "High-Intensity Exercise: Sprints 6:00-6:15 am"
+            - "Breakfast: Pre-Prepped Protein Shake 6:25-6:30 am"
+
+            Important:
+            - Preserve any text before the time as the title
+            - Correctly identify and parse the time range at the end
+            - Set all events to today's date
+            - Detect categories from context (e.g., Exercise, Meals, Work)`
         },
         {
           role: "user",

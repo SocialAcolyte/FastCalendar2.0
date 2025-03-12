@@ -39,15 +39,37 @@ const calendarSizes: Record<CalendarSize, string> = {
   large: "h-[calc(100vh-120px)]",
 };
 
-interface EventDialogProps {
+// Custom time slot size based on calendar size
+const getTimeSlotWrapper = (size: CalendarSize) => {
+  return ({ children }: { children: React.ReactNode }) => {
+    let height = "40px"; // Default for normal
+    if (size === "medium") height = "50px";
+    if (size === "large") height = "60px";
+
+    return (
+      <div style={{ height }}>
+        {children}
+      </div>
+    );
+  };
+};
+
+// Custom format for time gutter - show minutes for non-hour marks
+const formatTimeSlot = (date: Date, culture: string, localizer: any) => {
+  const minutes = date.getMinutes();
+  if (minutes === 0) {
+    return localizer.format(date, 'h a', culture);
+  }
+  return localizer.format(date, 'h:mm a', culture);
+};
+
+function EventDialog({ event, isOpen, onClose, onSubmit, onDelete }: {
   event: Partial<Event> | null;
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (event: Partial<Event>) => void;
   onDelete?: () => void;
-}
-
-function EventDialog({ event, isOpen, onClose, onSubmit, onDelete }: EventDialogProps) {
+}) {
   const [title, setTitle] = useState(event?.title || "");
   const [start, setStart] = useState(
     event?.start ? format(new Date(event.start), "yyyy-MM-dd'T'HH:mm") : ""
@@ -311,6 +333,12 @@ export default function Calendar() {
           selectable
           step={5}
           timeslots={12}
+          components={{
+            timeSlotWrapper: getTimeSlotWrapper(size)
+          }}
+          formats={{
+            timeGutterFormat: formatTimeSlot
+          }}
           eventPropGetter={(event: Event) => ({
             style: {
               backgroundColor: event.color || "#3788d8",
