@@ -7,13 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Info } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
 
 export default function EventInput() {
   const [inputText, setInputText] = useState("");
   const { toast } = useToast();
   const { user } = useAuth();
-  const [, setLocation] = useLocation();
 
   const batchCreateEventsMutation = useMutation({
     mutationFn: async (text: string) => {
@@ -21,31 +19,22 @@ export default function EventInput() {
         throw new Error("Please log in to create events");
       }
       const res = await apiRequest("POST", "/api/events/batch", { text });
-      return res.json();
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       setInputText("");
       toast({
-        title: "Events created",
-        description: "Successfully added events to calendar",
+        title: "Success",
+        description: "Events added to calendar",
       });
     },
     onError: (error: Error) => {
-      if (error.message.includes("Not authenticated")) {
-        setLocation("/auth");
-        toast({
-          title: "Authentication required",
-          description: "Please log in to create events",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 

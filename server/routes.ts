@@ -38,24 +38,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  app.get("/api/events", async (req, res, next) => {
+  // Get all events for the authenticated user
+  app.get("/api/events", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
     try {
       const events = await storage.getEvents(req.user.id);
       res.json(events);
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      console.error('Failed to get events:', error);
+      res.status(500).json({ message: "Failed to fetch events" });
     }
   });
 
-  // Single event creation route
-  app.post("/api/events", async (req, res, next) => {
+  // Create a single event
+  app.post("/api/events", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
-
     try {
       const event = await storage.createEvent({
         ...req.body,
@@ -70,14 +71,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       broadcastEvents(req.user.id);
       res.status(201).json(event);
-    } catch (err) {
-      console.error('Failed to create event:', err);
-      next(err);
+    } catch (error) {
+      console.error('Failed to create event:', error);
+      res.status(400).json({ message: "Failed to create event" });
     }
   });
 
-  // Simple event batch creation with basic time parsing
-  app.post("/api/events/batch", async (req, res, next) => {
+  // Create multiple events from text input
+  app.post("/api/events/batch", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
@@ -87,7 +88,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const [title, timeRange] = eventText.trim().split(/\s+(?=\d)/);
         const [startTime, endTime] = timeRange.split('-');
 
-        // Parse time in format "HH:mm am/pm"
         const parseTime = (timeStr: string) => {
           const [time, period] = timeStr.trim().split(' ');
           const [hours, minutes] = time.split(':').map(Number);
@@ -116,15 +116,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       broadcastEvents(req.user.id);
       res.status(201).json(createdEvents);
-    } catch (err) {
-      console.error('Failed to create batch events:', err);
+    } catch (error) {
+      console.error('Failed to create batch events:', error);
       res.status(400).json({ 
         message: "Failed to create events. Please use the format: 'Event Title 9:00 am-10:00 am'" 
       });
     }
   });
 
-  app.patch("/api/events/:id", async (req, res, next) => {
+  // Update an event
+  app.patch("/api/events/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
@@ -140,14 +141,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         start: req.body.start ? new Date(req.body.start) : undefined,
         end: req.body.end ? new Date(req.body.end) : undefined,
       });
+
       broadcastEvents(req.user.id);
       res.json(updatedEvent);
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      console.error('Failed to update event:', error);
+      res.status(400).json({ message: "Failed to update event" });
     }
   });
 
-  app.delete("/api/events/:id", async (req, res, next) => {
+  // Delete an event
+  app.delete("/api/events/:id", async (req, res) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
@@ -161,8 +165,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteEvent(event.id);
       broadcastEvents(req.user.id);
       res.sendStatus(204);
-    } catch (err) {
-      next(err);
+    } catch (error) {
+      console.error('Failed to delete event:', error);
+      res.status(400).json({ message: "Failed to delete event" });
     }
   });
 
