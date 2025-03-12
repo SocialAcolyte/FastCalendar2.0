@@ -44,10 +44,29 @@ export async function parseMultipleEvents(text: string): Promise<Array<{
     });
 
     const result = JSON.parse(response.choices[0].message.content || "{}");
-    return result.events || [];
+    console.log('AI parsed events:', result.events);
+
+    if (!result.events || !Array.isArray(result.events)) {
+      throw new Error("Invalid event format returned from AI");
+    }
+
+    // Validate each event has required fields
+    const validatedEvents = result.events.map(event => {
+      if (!event.title || !event.start || !event.end) {
+        throw new Error("Missing required event fields");
+      }
+      return {
+        title: event.title,
+        start: new Date(event.start).toISOString(),
+        end: new Date(event.end).toISOString(),
+        category: event.category || 'default'
+      };
+    });
+
+    return validatedEvents;
   } catch (error) {
     console.error("Failed to parse multiple events:", error);
-    throw new Error("Failed to parse multiple events");
+    throw new Error("Failed to parse multiple events: " + error.message);
   }
 }
 

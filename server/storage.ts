@@ -88,7 +88,7 @@ export class DatabaseStorage implements IStorage {
 
   async createEvent(event: InsertEvent & { user_id: number }): Promise<Event> {
     try {
-      console.log('Creating event:', {
+      console.log('Creating event with data:', {
         ...event,
         start: new Date(event.start).toISOString(),
         end: new Date(event.end).toISOString()
@@ -102,11 +102,15 @@ export class DatabaseStorage implements IStorage {
           end: new Date(event.end),
           color: event.color || "#3788d8",
           recurring: event.recurring || false,
-          shared_with: event.shared_with || [],
+          recurrence_pattern: event.recurrence_pattern || null,
+          category: event.category || null,
+          shared_with: event.shared_with || []
         })
         .returning();
 
-      console.log('Created event:', createdEvent);
+      console.log('Successfully created event:', createdEvent);
+
+      // Ensure dates are properly converted back to Date objects
       return {
         ...createdEvent,
         start: new Date(createdEvent.start),
@@ -114,7 +118,7 @@ export class DatabaseStorage implements IStorage {
       };
     } catch (error) {
       console.error('Failed to create event:', error);
-      throw new Error('Failed to create event');
+      throw new Error('Failed to create event: ' + error.message);
     }
   }
 
