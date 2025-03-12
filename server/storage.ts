@@ -1,8 +1,11 @@
+import { db } from "./db";
+import { eq } from "drizzle-orm";
+import { users, events, type User, type Event, type InsertUser, type InsertEvent } from "@shared/schema";
 import session from "express-session";
-import createMemoryStore from "memorystore";
-import { Event, InsertEvent, InsertUser, User } from "@shared/schema";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -16,96 +19,86 @@ export interface IStorage {
   updateEvent(id: number, data: Partial<Event>): Promise<Event>;
   deleteEvent(id: number): Promise<void>;
 
-  sessionStore: ReturnType<typeof createMemoryStore>;
+  sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private events: Map<number, Event>;
-  private currentUserId: number;
-  private currentEventId: number;
-  sessionStore: ReturnType<typeof createMemoryStore>;
+export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
 
   constructor() {
-    this.users = new Map();
-    this.events = new Map();
-    this.currentUserId = 1;
-    this.currentEventId = 1;
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
     });
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = {
-      id,
-      username: insertUser.username,
-      password: insertUser.password,
-      birthdate: insertUser.birthdate || null,
-      lifespan_option: insertUser.lifespan_option || null
-    };
-    this.users.set(id, user);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
   async updateUser(id: number, data: Partial<User>): Promise<User> {
-    const user = await this.getUser(id);
-    if (!user) throw new Error("User not found");
-    const updated = { ...user, ...data };
-    this.users.set(id, updated);
-    return updated;
+    const [user] = await db
+      .update(users)
+      .set(data)
+      .where(eq(users.id, id))
+      .returning();
+    return user;
   }
 
   async getEvents(userId: number): Promise<Event[]> {
-    return Array.from(this.events.values()).filter(
-      (event) => event.user_id === userId
-    );
+    return db
+      .select()
+      .from(events)
+      .where(eq(events.user_id, userId));
   }
 
   async getEvent(id: number): Promise<Event | undefined> {
-    return this.events.get(id);
+    const [event] = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, id));
+    return event;
   }
 
   async createEvent(event: InsertEvent & { user_id: number }): Promise<Event> {
-    const id = this.currentEventId++;
-    const newEvent: Event = {
-      id,
-      user_id: event.user_id,
-      title: event.title,
-      start: event.start,
-      end: event.end,
-      color: event.color || "#3788d8",
-      recurring: event.recurring || false,
-      recurrence_pattern: event.recurrence_pattern || null,
-      category: event.category || null,
-      shared_with: event.shared_with || null
-    };
-    this.events.set(id, newEvent);
-    return newEvent;
+    const [createdEvent] = await db
+      .insert(events)
+      .values({
+        ...event,
+        start: new Date(event.start),
+        end: new Date(event.end),
+      })
+      .returning();
+    return createdEvent;
   }
 
   async updateEvent(id: number, data: Partial<Event>): Promise<Event> {
-    const event = await this.getEvent(id);
-    if (!event) throw new Error("Event not found");
-    const updated = { ...event, ...data };
-    this.events.set(id, updated);
-    return updated;
+    const [event] = await db
+      .update(events)
+      .set({
+        ...data,
+        start: data.start ? new Date(data.start) : undefined,
+        end: data.end ? new Date(data.end) : undefined,
+      })
+      .where(eq(events.id, id))
+      .returning();
+    return event;
   }
 
   async deleteEvent(id: number): Promise<void> {
-    this.events.delete(id);
+    await db.delete(events).where(eq(events.id, id));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

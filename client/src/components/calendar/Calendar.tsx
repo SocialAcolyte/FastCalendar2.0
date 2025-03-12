@@ -39,51 +39,6 @@ const calendarSizes: Record<CalendarSize, string> = {
   large: "h-[calc(100vh-120px)]",
 };
 
-export default function Calendar() {
-  const [events, setEvents] = useState<Event[]>([]);
-  const [calendarSize, setCalendarSize] = useState<CalendarSize>("normal");
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [isEventDialogOpen, setIsEventDialogOpen] = useState(false);
-  const socket = useWebSocket();
-  const { user } = useAuth();
-  const { toast } = useToast();
-
-  // Define the query for fetching events
-  const eventsQuery = useQuery({
-    queryKey: ["/api/events"],
-    enabled: !!user,
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: "Failed to load events: " + error.message,
-        variant: "destructive",
-      });
-    }
-  });
-
-  // Listen for WebSocket events
-  useEffect(() => {
-    if (!socket) return;
-    
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === "events") {
-          setEvents(data.data);
-          queryClient.setQueryData(["/api/events"], data.data);
-        }
-      } catch (error) {
-        console.error("Failed to parse WebSocket message:", error);
-      }
-    };
-    
-    return () => {
-      if (socket) {
-        socket.onmessage = null;
-      }
-    };
-  }, [socket]);
-
 interface EventDialogProps {
   event: Partial<Event> | null;
   isOpen: boolean;
@@ -196,7 +151,7 @@ function EventDialog({ event, isOpen, onClose, onSubmit, onDelete }: EventDialog
   );
 }
 
-export default function CalendarComponent() {
+export default function Calendar() {
   const [selectedEvent, setSelectedEvent] = useState<Partial<Event> | null>(null);
   const [view, setView] = useState<View>("week");
   const [size, setSize] = useState<CalendarSize>("normal");

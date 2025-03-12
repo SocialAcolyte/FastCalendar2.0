@@ -86,7 +86,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           storage.createEvent({
             ...event,
             user_id: req.user.id,
-            color: "#3788d8"
+            color: "#3788d8",
+            start: new Date(event.start),
+            end: new Date(event.end)
           })
         )
       );
