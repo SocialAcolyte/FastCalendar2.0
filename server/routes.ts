@@ -3,7 +3,6 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { analyzeEventText, parseMultipleEvents, suggestEvents } from "./ai";
 import { eventValidationSchema } from "@shared/schema";
 
 interface ExtendedWebSocket extends WebSocket {
@@ -16,7 +15,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   const wss = new WebSocketServer({ server: httpServer, path: '/socket' });
 
-  // Broadcast event updates to all connected clients
   function broadcastEvents(userId: number) {
     wss.clients.forEach((client: ExtendedWebSocket) => {
       if (client.readyState === WebSocket.OPEN && client.userId === userId) {
@@ -27,7 +25,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }
 
-  // WebSocket connection handling
   wss.on('connection', (ws: ExtendedWebSocket) => {
     ws.on('message', async (message: Buffer) => {
       try {
@@ -41,7 +38,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Event routes
   app.get("/api/events", async (req, res, next) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
@@ -54,40 +50,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Simple event batch creation with basic time parsing
   app.post("/api/events/batch", async (req, res, next) => {
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "Not authenticated" });
     }
 
     try {
-      console.log('Batch creating events, input:', req.body.text);
+      const events = req.body.text.split(';').map(eventText => {
+        const [title, timeRange] = eventText.trim().split(/\s+(?=\d)/);
+        const [startTime, endTime] = timeRange.split('-');
 
-      // Parse events with today's date
-      const parsedEvents = await parseMultipleEvents(req.body.text);
-      console.log('Parsed events:', parsedEvents);
+        // Parse time in format "HH:mm am/pm"
+        const parseTime = (timeStr: string) => {
+          const [time, period] = timeStr.trim().split(' ');
+          const [hours, minutes] = time.split(':').map(Number);
+          const date = new Date();
+          date.setHours(
+            period.toLowerCase() === 'pm' && hours !== 12 ? hours + 12 : hours,
+            minutes
+          );
+          return date;
+        };
 
-      // Create all events
+        return {
+          title: title.trim(),
+          start: parseTime(startTime),
+          end: parseTime(endTime),
+          user_id: req.user.id,
+          color: "#3788d8",
+          recurring: false,
+          shared_with: []
+        };
+      });
+
       const createdEvents = await Promise.all(
-        parsedEvents.map(event =>
-          storage.createEvent({
-            ...event,
-            user_id: req.user.id,
-            start: new Date(event.start),
-            end: new Date(event.end),
-            color: "#3788d8",
-            recurring: false,
-            recurrence_pattern: null,
-            shared_with: []
-          })
-        )
+        events.map(event => storage.createEvent(event))
       );
 
-      console.log('Created events:', createdEvents);
       broadcastEvents(req.user.id);
       res.status(201).json(createdEvents);
     } catch (err) {
       console.error('Failed to create batch events:', err);
-      next(err);
+      res.status(400).json({ 
+        message: "Failed to create events. Please use the format: 'Event Title 9:00 am-10:00 am'" 
+      });
     }
   });
 

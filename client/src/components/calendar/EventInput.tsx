@@ -13,52 +13,42 @@ export default function EventInput() {
 
   const batchCreateEventsMutation = useMutation({
     mutationFn: async (text: string) => {
-      try {
-        const res = await apiRequest("POST", "/api/events/batch", { text });
-        return res.json();
-      } catch (error) {
-        // Check if it's an authentication error
-        if (error instanceof Error && error.message.includes("401")) {
-          // Redirect to auth page if not authenticated
-          window.location.href = "/auth";
-          throw new Error("Please login first");
-        }
-        throw error;
-      }
+      const res = await apiRequest("POST", "/api/events/batch", { text });
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       setInputText("");
       toast({
         title: "Events created",
-        description: "Successfully added multiple events to calendar",
+        description: "Successfully added events to calendar",
       });
     },
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: "Failed to create events: " + error.message,
+        description: error.message,
         variant: "destructive",
       });
     },
   });
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!inputText.trim()) return;
     batchCreateEventsMutation.mutate(inputText);
   };
 
   const examples = [
-    "Gym Workout 6:00-7:00 am; Team Meeting 9:30-10:30 am; Lunch Break 12:00-1:00 pm",
-    "Wake Up 5:50-5:55 am; Hydrate & Stretch 5:55-6:00 am; Exercise 6:00-6:30 am",
-    "Morning Routine 7:00-7:30 am; Commute 7:30-8:00 am; Work 8:00-5:00 pm",
+    "Team Meeting 9:30 am-10:30 am; Lunch Break 12:00 pm-1:00 pm",
+    "Morning Workout 6:00 am-7:00 am; Daily Standup 9:00 am-9:30 am",
+    "Project Review 2:00 pm-3:00 pm; Coffee Break 3:15 pm-3:30 pm",
   ];
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          Batch Event Input
+          Add Events
           <Button
             variant="ghost"
             size="icon"
@@ -67,7 +57,7 @@ export default function EventInput() {
               toast({
                 title: "Input Format",
                 description:
-                  "Enter multiple events separated by semicolons. Format: 'Event Title Start-End Time'. Example: 'Meeting 9:00-10:00 am; Lunch 12:00-1:00 pm'",
+                  "Enter events separated by semicolons. Format: 'Event Title HH:MM am/pm-HH:MM am/pm'. Example: 'Meeting 9:00 am-10:00 am; Lunch 12:00 pm-1:00 pm'",
               })
             }
           >
@@ -80,7 +70,7 @@ export default function EventInput() {
           <Textarea
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="Enter multiple events separated by semicolons. Example: 'Meeting 9:00-10:00 am; Lunch 12:00-1:00 pm'"
+            placeholder="Enter events separated by semicolons. Example: 'Meeting 9:00 am-10:00 am; Lunch 12:00 pm-1:00 pm'"
             className="min-h-[100px] font-mono"
           />
           <Button
