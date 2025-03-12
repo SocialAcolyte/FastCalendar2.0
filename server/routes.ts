@@ -60,8 +60,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     try {
+      console.log('Batch creating events, input:', req.body.text);
+
       // Parse events with today's date
       const parsedEvents = await parseMultipleEvents(req.body.text);
+      console.log('Parsed events:', parsedEvents);
 
       // Create all events
       const createdEvents = await Promise.all(
@@ -79,6 +82,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         )
       );
 
+      console.log('Created events:', createdEvents);
       broadcastEvents(req.user.id);
       res.status(201).json(createdEvents);
     } catch (err) {
@@ -98,7 +102,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Event not found" });
       }
 
-      const updatedEvent = await storage.updateEvent(event.id, req.body);
+      const updatedEvent = await storage.updateEvent(event.id, {
+        ...req.body,
+        start: req.body.start ? new Date(req.body.start) : undefined,
+        end: req.body.end ? new Date(req.body.end) : undefined,
+      });
       broadcastEvents(req.user.id);
       res.json(updatedEvent);
     } catch (err) {
@@ -120,33 +128,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteEvent(event.id);
       broadcastEvents(req.user.id);
       res.sendStatus(204);
-    } catch (err) {
-      next(err);
-    }
-  });
-
-  // AI routes
-  app.post("/api/analyze-event", async (req, res, next) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    try {
-      const analysis = await analyzeEventText(req.body.text);
-      res.json(analysis);
-    } catch (err) {
-      next(err);
-    }
-  });
-
-  app.post("/api/suggest-events", async (req, res, next) => {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-
-    try {
-      const suggestions = await suggestEvents(req.body.events, req.body.preferences);
-      res.json(suggestions);
     } catch (err) {
       next(err);
     }

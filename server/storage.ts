@@ -57,10 +57,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getEvents(userId: number): Promise<Event[]> {
-    return db
-      .select()
-      .from(events)
-      .where(eq(events.user_id, userId));
+    try {
+      const userEvents = await db
+        .select()
+        .from(events)
+        .where(eq(events.user_id, userId));
+
+      return userEvents.map(event => ({
+        ...event,
+        start: new Date(event.start),
+        end: new Date(event.end)
+      }));
+    } catch (error) {
+      console.error('Failed to get events:', error);
+      throw new Error('Failed to fetch events');
+    }
   }
 
   async getEvent(id: number): Promise<Event | undefined> {
@@ -68,19 +79,43 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(events)
       .where(eq(events.id, id));
-    return event;
+    return event ? {
+      ...event,
+      start: new Date(event.start),
+      end: new Date(event.end)
+    } : undefined;
   }
 
   async createEvent(event: InsertEvent & { user_id: number }): Promise<Event> {
-    const [createdEvent] = await db
-      .insert(events)
-      .values({
+    try {
+      console.log('Creating event:', {
         ...event,
-        start: new Date(event.start),
-        end: new Date(event.end),
-      })
-      .returning();
-    return createdEvent;
+        start: new Date(event.start).toISOString(),
+        end: new Date(event.end).toISOString()
+      });
+
+      const [createdEvent] = await db
+        .insert(events)
+        .values({
+          ...event,
+          start: new Date(event.start),
+          end: new Date(event.end),
+          color: event.color || "#3788d8",
+          recurring: event.recurring || false,
+          shared_with: event.shared_with || [],
+        })
+        .returning();
+
+      console.log('Created event:', createdEvent);
+      return {
+        ...createdEvent,
+        start: new Date(createdEvent.start),
+        end: new Date(createdEvent.end)
+      };
+    } catch (error) {
+      console.error('Failed to create event:', error);
+      throw new Error('Failed to create event');
+    }
   }
 
   async updateEvent(id: number, data: Partial<Event>): Promise<Event> {
@@ -93,7 +128,11 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(events.id, id))
       .returning();
-    return event;
+    return {
+      ...event,
+      start: new Date(event.start),
+      end: new Date(event.end)
+    };
   }
 
   async deleteEvent(id: number): Promise<void> {

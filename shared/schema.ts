@@ -10,12 +10,12 @@ export const users = pgTable("users", {
   lifespan_option: text("lifespan_option"),
 });
 
-export const events = pgTable("events", {
+export const events = pgTable("calendar_events", {
   id: serial("id").primaryKey(),
   user_id: integer("user_id").notNull(),
   title: text("title").notNull(),
-  start: timestamp("start").notNull(),
-  end: timestamp("end").notNull(),
+  start: timestamp("event_start").notNull(),
+  end: timestamp("event_end").notNull(),
   color: text("color").default("#3788d8"),
   recurring: boolean("recurring").default(false),
   recurrence_pattern: text("recurrence_pattern"),
@@ -48,7 +48,7 @@ export type Event = typeof events.$inferSelect;
 
 export const eventValidationSchema = insertEventSchema.extend({
   title: z.string().min(1, "Title is required"),
-  start: z.date(),
-  end: z.date(),
-  color: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid color format"),
+  start: z.coerce.date(),
+  end: z.coerce.date(),
+  color: z.string().regex(/^#[0-9A-F]{6}$/i, "Invalid color format").optional(),
 });
