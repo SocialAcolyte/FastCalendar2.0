@@ -13,18 +13,8 @@ export default function EventInput() {
 
   const batchCreateEventsMutation = useMutation({
     mutationFn: async (text: string) => {
-      try {
-        const res = await apiRequest("POST", "/api/events/batch", { text });
-        return res.json();
-      } catch (error) {
-        // Check if it's an authentication error
-        if (error instanceof Error && error.message.includes("401")) {
-          // Redirect to auth page if not authenticated
-          window.location.href = "/auth";
-          throw new Error("Please login first");
-        }
-        throw error;
-      }
+      const res = await apiRequest("POST", "/api/events/batch", { text });
+      return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
