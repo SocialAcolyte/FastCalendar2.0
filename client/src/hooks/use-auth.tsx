@@ -4,6 +4,7 @@ import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useGuestStorage } from "./use-guest-storage";
+import { useLocation } from "wouter";
 import { z } from "zod";
 
 type AuthContextType = {
@@ -36,6 +37,7 @@ const GUEST_FLAG_KEY = "is_guest_user";
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const guestStorage = useGuestStorage();
+  const [, setLocation] = useLocation();
 
   const {
     data: user,
@@ -61,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Success",
         description: "Logged in successfully",
       });
+      setLocation("/");
     },
     onError: (error: Error) => {
       toast({
@@ -84,6 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Success",
         description: "Registered successfully",
       });
+      setLocation("/");
     },
     onError: (error: Error) => {
       toast({
@@ -107,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         title: "Success",
         description: "Logged out successfully",
       });
+      setLocation("/auth");
     },
     onError: (error: Error) => {
       toast({
@@ -141,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const continueAsGuest = () => {
     localStorage.setItem(GUEST_FLAG_KEY, "true");
     queryClient.setQueryData(["/api/user"], null);
-    window.location.href = "/";
+    setLocation("/");
   };
 
   // Set up mock events query for guest mode

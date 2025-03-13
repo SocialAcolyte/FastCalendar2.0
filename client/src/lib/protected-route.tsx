@@ -9,7 +9,7 @@ export function ProtectedRoute({
   path: string;
   component: () => React.JSX.Element;
 }) {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isGuest } = useAuth();
 
   if (isLoading) {
     return (
@@ -21,7 +21,8 @@ export function ProtectedRoute({
     );
   }
 
-  if (!user) {
+  // Allow access if user is authenticated or in guest mode
+  if (!user && !isGuest) {
     return (
       <Route path={path}>
         <Redirect to="/auth" />
