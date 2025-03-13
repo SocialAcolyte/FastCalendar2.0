@@ -89,28 +89,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/events/batch", requireAuth, async (req, res) => {
     try {
       console.log('Processing batch events for user:', req.user.id);
+      console.log('Received text:', req.body.text);
+
       const events = req.body.text.split(';').map((eventText: string) => {
-        const [title, timeRange] = eventText.trim().split(/\s+(?=\d)/);
-        const [startTime, endTime] = timeRange.split('-');
+        // Remove extra whitespace and split at the first number
+        const matches = eventText.trim().match(/^(.+?)(\d{1,2}:\d{2}\s*(?:am|pm)-\d{1,2}:\d{2}\s*(?:am|pm))$/i);
+
+        if (!matches) {
+          throw new Error(`Invalid format for event: "${eventText.trim()}". Expected format: "Event Title 9:00 am-10:00 am"`);
+        }
+
+        const [_, title, timeRange] = matches;
+        const [startTime, endTime] = timeRange.split('-').map(t => t.trim());
 
         const parseTime = (timeStr: string) => {
-          const [time, period] = timeStr.trim().split(' ');
+          const [time, period] = timeStr.toLowerCase().match(/(\d{1,2}:\d{2})\s*(am|pm)/)?.slice(1) || [];
+          if (!time || !period) {
+            throw new Error(`Invalid time format: "${timeStr}". Expected format: "9:00 am" or "9:00 pm"`);
+          }
+
           const [hours, minutes] = time.split(':').map(Number);
           const date = new Date();
-          date.setHours(
-            period.toLowerCase() === 'pm' && hours !== 12 ? hours + 12 : hours,
-            minutes || 0
-          );
+
+          // Convert to 24-hour format
+          let adjustedHours = hours;
+          if (period === 'pm' && hours !== 12) {
+            adjustedHours += 12;
+          } else if (period === 'am' && hours === 12) {
+            adjustedHours = 0;
+          }
+
+          date.setHours(adjustedHours, minutes || 0, 0, 0);
           return date;
         };
 
+        const start = parseTime(startTime);
+        const end = parseTime(endTime);
+
+        // Validate that end time is after start time
+        if (end <= start) {
+          throw new Error(`End time must be after start time for event: "${eventText.trim()}"`);
+        }
+
         return {
           title: title.trim(),
-          start: parseTime(startTime),
-          end: parseTime(endTime),
+          start,
+          end,
           user_id: req.user.id,
           color: "#3788d8",
           recurring: false,
+          category: null,
           shared_with: []
         };
       });
@@ -126,7 +154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Failed to create batch events:', error);
       res.status(400).json({ 
-        message: "Failed to create events. Please use the format: 'Event Title 9:00 am-10:00 am'" 
+        message: (error as Error).message || "Failed to create events. Please use the format: 'Event Title 9:00 am-10:00 am'" 
       });
     }
   });
