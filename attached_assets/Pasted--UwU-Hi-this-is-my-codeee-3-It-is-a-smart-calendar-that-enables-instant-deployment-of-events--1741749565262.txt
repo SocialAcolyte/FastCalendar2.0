@@ -1,9 +1,3 @@
-// UwU Hi this is my codeee <3
-
-// It is a smart calendar that enables instant deployment of events with a AI and Programatic approach.
-// It is super fast, but it needs lots of work. this is just a start.
-// 
-
 import React, { useState, useRef, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
@@ -573,6 +567,3 @@ const App = () => {
 };
 
 export default App;
-
-// Hey pookie reading this, I need to make it so that the app handles auto dynamic resizing, mobile compatiable, and a few other things. I'll get to it soon. I promise. I love you. <3
-// Oh also I need to add back end logic so that events are handled and stored in a database. I'll get to that too. I love you. <3

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { differenceInWeeks, format, addYears, isValid } from "date-fns";
 import { motion } from "framer-motion";
+import { useGuestStorage } from "@/hooks/use-guest-storage";
 
 const lifespanOptions = {
   unhealthy: 65,
@@ -101,7 +102,8 @@ function LifeStats({ birthdate, lifespanOption }: TimelineProps) {
 }
 
 export default function LifeTimeline() {
-  const { user, updateUserMutation } = useAuth();
+  const { user, updateUserMutation, isGuest } = useAuth();
+  const { updateUserSettings } = useGuestStorage();
   const [birthdate, setBirthdate] = useState(user?.birthdate || "");
   const [lifespanOption, setLifespanOption] = useState<keyof typeof lifespanOptions>(
     (user?.lifespan_option as keyof typeof lifespanOptions) || "healthy"
@@ -113,10 +115,16 @@ export default function LifeTimeline() {
   }, [user]);
 
   const handleSave = () => {
-    updateUserMutation.mutate({
+    const settings = {
       birthdate,
       lifespan_option: lifespanOption,
-    });
+    };
+
+    if (isGuest) {
+      updateUserSettings(settings);
+    } else {
+      updateUserMutation.mutate(settings);
+    }
   };
 
   const isValidDate = birthdate && isValid(new Date(birthdate));
@@ -163,7 +171,7 @@ export default function LifeTimeline() {
             disabled={!isValidDate || updateUserMutation.isPending}
             className="w-full"
           >
-            {updateUserMutation.isPending ? "Saving..." : "Save Settings"}
+            {updateUserMutation.isPending ? "Saving..." : "Update Settings"}
           </Button>
 
           {isValidDate ? (
