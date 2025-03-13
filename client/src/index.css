@@ -2,72 +2,136 @@
 @tailwind components;
 @tailwind utilities;
 
-
 :root {
-  --background: 40 100% 98%;
-  --foreground: 30 10% 15%;
-  --card: 40 30% 96%;
-  --card-foreground: 30 10% 15%;
-  --popover: 40 30% 96%;
-  --popover-foreground: 30 10% 15%;
-  --primary: 25 95% 50%;
-  --primary-foreground: 30 10% 98%;
-  --secondary: 40 30% 90%;
-  --secondary-foreground: 30 10% 15%;
-  --muted: 40 30% 92%;
-  --muted-foreground: 30 10% 40%;
-  --accent: 30 60% 92%;
-  --accent-foreground: 30 10% 15%;
-  --destructive: 0 85% 60%;
-  --destructive-foreground: 30 10% 98%;
-  --border: 30 30% 85%;
-  --input: 30 30% 85%;
-  --ring: 25 95% 50%;
+  /* Base colors - soft pinks and subtle pastels */
+  --background: 350 30% 98%;
+  --foreground: 340 10% 20%;
+  --card: 340 20% 97%;
+  --card-foreground: 340 10% 20%;
+  --popover: 340 20% 97%;
+  --popover-foreground: 340 10% 20%;
+
+  /* Primary colors - soft rose/pink */
+  --primary: 340 80% 65%;
+  --primary-foreground: 350 10% 98%;
+  --primary-hover: 340 80% 60%;
+  --primary-active: 340 80% 55%;
+
+  /* Secondary colors - subtle lavender */
+  --secondary: 260 20% 92%;
+  --secondary-foreground: 340 10% 20%;
+  --secondary-hover: 260 20% 87%;
+  --secondary-active: 260 20% 82%;
+
+  /* Utility colors - expanded for more flexibility */
+  --muted: 350 15% 94%;
+  --muted-foreground: 340 10% 40%;
+  --accent: 280 25% 92%;
+  --accent-foreground: 340 10% 20%;
+  --destructive: 0 75% 65%;
+  --destructive-foreground: 350 10% 98%;
+  --destructive-hover: 0 75% 60%;
+  --destructive-active: 0 75% 55%;
+  --success: 150 60% 45%;
+  --success-foreground: 350 10% 98%;
+  --warning: 35 85% 65%;
+  --warning-foreground: 340 10% 20%;
+  --info: 200 80% 55%;
+  --info-foreground: 350 10% 98%;
+
+  /* Border and input colors */
+  --border: 340 15% 85%;
+  --input: 340 15% 85%;
+  --ring: 340 80% 65%;
+  --focus-ring: 340 80% 75%;
   --radius: 0.75rem;
-  
-  --chart-1: 25 95% 50%;
-  --chart-2: 40 95% 50%;
-  --chart-3: 15 80% 50%;
-  --chart-4: 350 70% 50%;
-  --chart-5: 200 70% 50%;
-  
-  --sidebar-background: 40 30% 96%;
-  --sidebar-foreground: 30 10% 15%;
-  --sidebar-primary: 25 95% 50%;
-  --sidebar-primary-foreground: 30 10% 98%;
-  --sidebar-accent: 30 60% 92%;
-  --sidebar-accent-foreground: 30 10% 15%;
-  --sidebar-border: 30 30% 85%;
-  --sidebar-ring: 25 95% 50%;
+
+  /* Chart colors - soft pastels */
+  --chart-1: 340 80% 65%;
+  --chart-2: 280 70% 65%;
+  --chart-3: 180 60% 65%;
+  --chart-4: 45 70% 65%;
+  --chart-5: 220 60% 65%;
+  --chart-6: 310 60% 65%;
+  --chart-7: 120 50% 65%;
+  --chart-8: 20 60% 65%;
+
+  /* Sidebar specific colors */
+  --sidebar-background: 340 20% 97%;
+  --sidebar-foreground: 340 10% 20%;
+  --sidebar-primary: 340 80% 65%;
+  --sidebar-primary-foreground: 350 10% 98%;
+  --sidebar-accent: 280 25% 92%;
+  --sidebar-accent-foreground: 340 10% 20%;
+  --sidebar-border: 340 15% 85%;
+  --sidebar-ring: 340 80% 65%;
+
+  /* Shadow variables */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  /* Animation variables */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-medium: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 500ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dark {
+  /* Base colors - improved dark mode contrast */
   --background: 240 10% 7%;
   --foreground: 0 0% 98%;
   --card: 240 10% 10%;
   --card-foreground: 0 0% 98%;
   --popover: 240 10% 10%;
   --popover-foreground: 0 0% 98%;
+
+  /* Primary colors - more saturated for dark mode */
   --primary: 221 83% 53%;
   --primary-foreground: 210 40% 98%;
+  --primary-hover: 221 83% 58%;
+  --primary-active: 221 83% 63%;
+
+  /* Secondary colors - better contrast in dark mode */
   --secondary: 240 3% 15%;
   --secondary-foreground: 0 0% 98%;
+  --secondary-hover: 240 3% 20%;
+  --secondary-active: 240 3% 25%;
+
+  /* Utility colors - optimized for dark mode */
   --muted: 240 3% 15%;
   --muted-foreground: 240 5% 65%;
   --accent: 240 3% 15%;
   --accent-foreground: 0 0% 98%;
   --destructive: 0 75% 50%;
   --destructive-foreground: 210 40% 98%;
+  --destructive-hover: 0 75% 55%;
+  --destructive-active: 0 75% 60%;
+  --success: 142 70% 45%;
+  --success-foreground: 0 0% 98%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 15%;
+  --info: 200 90% 50%;
+  --info-foreground: 0 0% 98%;
+
+  /* Border and input colors */
   --border: 240 3% 20%;
   --input: 240 3% 20%;
   --ring: 221 83% 53%;
-  
+  --focus-ring: 221 83% 65%;
+
+  /* Chart colors - brighter for dark mode */
   --chart-1: 221 83% 53%;
   --chart-2: 30 83% 53%;
   --chart-3: 120 83% 53%;
   --chart-4: 300 83% 53%;
   --chart-5: 200 83% 53%;
-  
+  --chart-6: 260 83% 53%;
+  --chart-7: 330 83% 53%;
+  --chart-8: 170 83% 53%;
+
+  /* Sidebar specific colors */
   --sidebar-background: 240 10% 10%;
   --sidebar-foreground: 0 0% 98%;
   --sidebar-primary: 221 83% 53%;
@@ -76,6 +140,12 @@
   --sidebar-accent-foreground: 0 0% 98%;
   --sidebar-border: 240 3% 20%;
   --sidebar-ring: 221 83% 53%;
+
+  /* Shadow variables - adjusted for dark mode */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px -1px rgb(0 0 0 / 0.4);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
 }
 
 @layer base {
@@ -85,5 +155,37 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+  }
+
+  /* Improved focus styles */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Better typography defaults */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-medium tracking-tight;
+  }
+}
+
+/* Custom utility classes */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  .animate-in {
+    animation-duration: 0.3s;
+    animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    animation-fill-mode: forwards;
   }
 }

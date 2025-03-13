@@ -20,6 +20,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Maximize2, Minimize2 } from "lucide-react";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import { useGuestStorage } from "@/hooks/use-guest-storage"; // Import the hook
+
 
 const localizer = dateFnsLocalizer({
   format,
@@ -179,6 +181,8 @@ export default function Calendar() {
   const { toast } = useToast();
   const socket = useWebSocket((state) => state.socket);
   const connect = useWebSocket((state) => state.connect);
+  const isGuest = !user; // Determine guest status
+  const guestStorage = useGuestStorage(); // Initialize guest storage
 
   useEffect(() => {
     if (user) {
@@ -255,7 +259,7 @@ export default function Calendar() {
       const tempEvent = {
         ...event,
         id: event.id || Math.random() * -1000000,
-        user_id: user?.id || 0,
+        user_id: user?.id || -1,
       };
 
       // Optimistically update the UI
@@ -268,13 +272,23 @@ export default function Calendar() {
         return [...old, tempEvent];
       });
 
-      // Make the API call
-      if (event.id) {
-        await updateEventMutation.mutateAsync(event);
+      if (isGuest) {
+        // Handle guest mode events using localStorage
+        if (event.id) {
+          guestStorage.updateEvent(event.id, event);
+        } else {
+          guestStorage.createEvent(event);
+        }
+        setSelectedEvent(null);
       } else {
-        await createEventMutation.mutateAsync(event);
+        // Make the API call for authenticated users
+        if (event.id) {
+          await updateEventMutation.mutateAsync(event);
+        } else {
+          await createEventMutation.mutateAsync(event);
+        }
+        setSelectedEvent(null);
       }
-      setSelectedEvent(null);
     } catch (error) {
       // Revert optimistic update on error
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
@@ -295,7 +309,13 @@ export default function Calendar() {
           old.filter((e) => e.id !== selectedEvent.id)
         );
 
-        await deleteEventMutation.mutateAsync(selectedEvent.id);
+        if (isGuest) {
+          // Handle guest mode deletion using localStorage
+          guestStorage.deleteEvent(selectedEvent.id);
+        } else {
+          // Make the API call for authenticated users
+          await deleteEventMutation.mutateAsync(selectedEvent.id);
+        }
         setSelectedEvent(null);
       } catch (error) {
         // Revert optimistic update on error

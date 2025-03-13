@@ -19,7 +19,7 @@ const authSchema = z.object({
 type AuthFormData = z.infer<typeof authSchema>;
 
 export default function AuthPage() {
-  const { user, loginMutation, registerMutation } = useAuth();
+  const { user, loginMutation, registerMutation, continueAsGuest } = useAuth();
   const [, setLocation] = useLocation();
 
   // Redirect if already authenticated
@@ -89,9 +89,19 @@ export default function AuthPage() {
                         </FormItem>
                       )}
                     />
-                    <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
-                      {loginMutation.isPending ? "Logging in..." : "Login"}
-                    </Button>
+                    <div className="space-y-2">
+                      <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
+                        {loginMutation.isPending ? "Logging in..." : "Login"}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => continueAsGuest()}
+                      >
+                        Continue as Guest
+                      </Button>
+                    </div>
                   </form>
                 </Form>
               </CardContent>
@@ -132,9 +142,19 @@ export default function AuthPage() {
                         </FormItem>
                       )}
                     />
-                    <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
-                      {registerMutation.isPending ? "Creating account..." : "Register"}
-                    </Button>
+                    <div className="space-y-2">
+                      <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
+                        {registerMutation.isPending ? "Creating account..." : "Register"}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => continueAsGuest()}
+                      >
+                        Continue as Guest
+                      </Button>
+                    </div>
                   </form>
                 </Form>
               </CardContent>

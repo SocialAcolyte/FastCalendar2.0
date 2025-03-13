@@ -1,18 +1,21 @@
-import { createContext, ReactNode, useContext } from "react";
+import { createContext, ReactNode, useContext, useEffect } from "react";
 import { useQuery, useMutation, UseMutationResult } from "@tanstack/react-query";
 import { insertUserSchema, User as SelectUser, InsertUser } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useGuestStorage } from "./use-guest-storage";
 import { z } from "zod";
 
 type AuthContextType = {
   user: SelectUser | null;
   isLoading: boolean;
   error: Error | null;
+  isGuest: boolean;
   loginMutation: UseMutationResult<SelectUser, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
   updateUserMutation: UseMutationResult<SelectUser, Error, UpdateUserData>;
+  continueAsGuest: () => void;
 };
 
 type LoginData = Pick<InsertUser, "username" | "password">;
@@ -28,8 +31,11 @@ const loginSchema = insertUserSchema.pick({
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 
+const GUEST_FLAG_KEY = "is_guest_user";
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const guestStorage = useGuestStorage();
 
   const {
     data: user,
@@ -40,6 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
+  const isGuest = localStorage.getItem(GUEST_FLAG_KEY) === "true";
+
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
       await loginSchema.parseAsync(credentials);
@@ -47,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
+      localStorage.removeItem(GUEST_FLAG_KEY);
       queryClient.setQueryData(["/api/user"], user);
       toast({
         title: "Success",
@@ -69,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (user: SelectUser) => {
+      localStorage.removeItem(GUEST_FLAG_KEY);
       queryClient.setQueryData(["/api/user"], user);
       toast({
         title: "Success",
@@ -86,7 +96,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/logout");
+      if (!isGuest) {
+        await apiRequest("POST", "/api/logout");
+      }
+      localStorage.removeItem(GUEST_FLAG_KEY);
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
@@ -125,16 +138,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const continueAsGuest = () => {
+    localStorage.setItem(GUEST_FLAG_KEY, "true");
+    queryClient.setQueryData(["/api/user"], null);
+    window.location.href = "/";
+  };
+
+  // Set up mock events query for guest mode
+  useEffect(() => {
+    if (isGuest) {
+      queryClient.setQueryData(["/api/events"], guestStorage.events);
+    }
+  }, [isGuest, guestStorage.events]);
+
   return (
     <AuthContext.Provider
       value={{
         user: user ?? null,
         isLoading,
         error,
+        isGuest,
         loginMutation,
         logoutMutation,
         registerMutation,
         updateUserMutation,
+        continueAsGuest,
       }}
     >
       {children}
