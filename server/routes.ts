@@ -72,6 +72,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         end: new Date(req.body.end),
         color: req.body.color || "#3788d8",
         recurring: false,
+        recurrence_pattern: null,
         category: req.body.category || null,
         shared_with: []
       });
@@ -145,7 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Creating batch events:', events);
       const createdEvents = await Promise.all(
-        events.map((event: any) => storage.createEvent(event))
+        events.map(event => storage.createEvent(event))
       );
 
       console.log('Batch events created successfully');

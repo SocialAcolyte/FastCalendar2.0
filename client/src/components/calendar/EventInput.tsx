@@ -60,6 +60,7 @@ export default function EventInput() {
         user_id: user?.id || -1,
         color: "#3788d8",
         recurring: false,
+        recurrence_pattern: null,
         category: null,
         shared_with: []
       };
@@ -93,6 +94,9 @@ export default function EventInput() {
 
     try {
       const events = parseEvents(inputText);
+
+      // Optimistically update the UI
+      queryClient.setQueryData(["/api/events"], (old: any[] = []) => [...old, ...events]);
 
       // Handle guest mode
       if (isGuest) {
