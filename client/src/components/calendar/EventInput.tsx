@@ -7,68 +7,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Info } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { useGuestStorage } from "@/hooks/use-guest-storage";
 
 export default function EventInput() {
   const [inputText, setInputText] = useState("");
   const { toast } = useToast();
-  const { user, isGuest } = useAuth();
-  const { createEvent } = useGuestStorage();
-
-  const parseEvents = (text: string) => {
-    return text.split(';').map(eventText => {
-      const matches = eventText.trim().match(/^(.+?)(\d{1,2}:\d{2}\s*(?:am|pm)-\d{1,2}:\d{2}\s*(?:am|pm))$/i);
-
-      if (!matches) {
-        throw new Error(`Invalid format for event: "${eventText.trim()}". Expected format: "Event Title 9:00 am-10:00 am"`);
-      }
-
-      const [_, title, timeRange] = matches;
-      const [startTime, endTime] = timeRange.split('-').map(t => t.trim());
-
-      const parseTime = (timeStr: string) => {
-        const [time, period] = timeStr.toLowerCase().match(/(\d{1,2}:\d{2})\s*(am|pm)/)?.slice(1) || [];
-        if (!time || !period) {
-          throw new Error(`Invalid time format: "${timeStr}". Expected format: "9:00 am" or "9:00 pm"`);
-        }
-
-        const [hours, minutes] = time.split(':').map(Number);
-        const date = new Date();
-
-        let adjustedHours = hours;
-        if (period === 'pm' && hours !== 12) {
-          adjustedHours += 12;
-        } else if (period === 'am' && hours === 12) {
-          adjustedHours = 0;
-        }
-
-        date.setHours(adjustedHours, minutes || 0, 0, 0);
-        return date;
-      };
-
-      const start = parseTime(startTime);
-      const end = parseTime(endTime);
-
-      if (end <= start) {
-        throw new Error(`End time must be after start time for event: "${eventText.trim()}"`);
-      }
-
-      return {
-        title: title.trim(),
-        start,
-        end,
-        user_id: user?.id || -1,
-        color: "#3788d8",
-        recurring: false,
-        recurrence_pattern: null,
-        category: null,
-        shared_with: []
-      };
-    });
-  };
+  const { user } = useAuth();
 
   const batchCreateEventsMutation = useMutation({
     mutationFn: async (text: string) => {
+      if (!user) {
+        throw new Error("Please log in to create events");
+      }
       const res = await apiRequest("POST", "/api/events/batch", { text });
       return await res.json();
     },
@@ -91,35 +40,7 @@ export default function EventInput() {
 
   const handleSubmit = () => {
     if (!inputText.trim()) return;
-
-    try {
-      const events = parseEvents(inputText);
-
-      // Optimistically update the UI
-      queryClient.setQueryData(["/api/events"], (old: any[] = []) => [...old, ...events]);
-
-      // Handle guest mode
-      if (isGuest) {
-        events.forEach(event => {
-          createEvent(event);
-        });
-        setInputText("");
-        toast({
-          title: "Success",
-          description: "Events added to calendar",
-        });
-        return;
-      }
-
-      // Handle authenticated mode
-      batchCreateEventsMutation.mutate(inputText);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: (error as Error).message,
-        variant: "destructive",
-      });
-    }
+    batchCreateEventsMutation.mutate(inputText);
   };
 
   const examples = [

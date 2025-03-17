@@ -4,79 +4,12 @@ import Calendar from "@/components/calendar/Calendar";
 import EventInput from "@/components/calendar/EventInput";
 import LifeTimeline from "@/components/life/LifeTimeline";
 import { Button } from "@/components/ui/button";
-import { LogOut, Sun, Moon, Save } from "lucide-react";
+import { LogOut, Sun, Moon } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
-import { useToast } from "@/hooks/use-toast";
-import { useGuestStorage } from "@/hooks/use-guest-storage";
-import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function HomePage() {
-  const { user, logoutMutation, isGuest, updateUserMutation } = useAuth();
+  const { user, logoutMutation } = useAuth();
   const { theme, setTheme } = useTheme();
-  const { toast } = useToast();
-  const { pendingChanges, clearPendingChanges } = useGuestStorage();
-
-  // Sync mutation for saving all pending changes
-  const syncMutation = useMutation({
-    mutationFn: async () => {
-      if (!user && !isGuest) return;
-
-      const responses = [];
-
-      // Sync events if there are pending changes
-      if (pendingChanges.events.length > 0) {
-        for (const event of pendingChanges.events) {
-          try {
-            const res = await apiRequest("POST", "/api/events", event);
-            responses.push(await res.json());
-          } catch (error) {
-            console.error("Failed to sync event:", error);
-            throw error;
-          }
-        }
-      }
-
-      // Sync user settings if there are pending changes
-      if (pendingChanges.userSettings && !isGuest) {
-        try {
-          await updateUserMutation.mutateAsync(pendingChanges.userSettings);
-        } catch (error) {
-          console.error("Failed to sync user settings:", error);
-          throw error;
-        }
-      }
-
-      return responses;
-    },
-    onSuccess: () => {
-      clearPendingChanges();
-      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
-      toast({
-        title: "Success",
-        description: "All changes saved successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: "Failed to save changes: " + error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Handle save button click
-  const handleSave = () => {
-    if (isGuest) {
-      toast({
-        title: "Success",
-        description: "Changes saved locally",
-      });
-      return;
-    }
-    syncMutation.mutate();
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -96,17 +29,8 @@ export default function HomePage() {
                 <Sun className="h-5 w-5" />
               )}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSave}
-              disabled={syncMutation.isPending}
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {syncMutation.isPending ? "Saving..." : "Save Changes"}
-            </Button>
             <span className="text-muted-foreground hidden md:inline">
-              Welcome, {user?.username || "Guest"}
+              Welcome, {user?.username}
             </span>
             <Button
               variant="outline"
@@ -115,7 +39,7 @@ export default function HomePage() {
               disabled={logoutMutation.isPending}
             >
               <LogOut className="h-4 w-4 mr-2" />
-              {isGuest ? "Exit Guest Mode" : "Logout"}
+              Logout
             </Button>
           </div>
         </div>

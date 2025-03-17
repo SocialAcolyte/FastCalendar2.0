@@ -72,7 +72,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         end: new Date(req.body.end),
         color: req.body.color || "#3788d8",
         recurring: false,
-        recurrence_pattern: null,
         category: req.body.category || null,
         shared_with: []
       });
@@ -90,63 +89,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/events/batch", requireAuth, async (req, res) => {
     try {
       console.log('Processing batch events for user:', req.user.id);
-      console.log('Received text:', req.body.text);
-
       const events = req.body.text.split(';').map((eventText: string) => {
-        // Remove extra whitespace and split at the first number
-        const matches = eventText.trim().match(/^(.+?)(\d{1,2}:\d{2}\s*(?:am|pm)-\d{1,2}:\d{2}\s*(?:am|pm))$/i);
-
-        if (!matches) {
-          throw new Error(`Invalid format for event: "${eventText.trim()}". Expected format: "Event Title 9:00 am-10:00 am"`);
-        }
-
-        const [_, title, timeRange] = matches;
-        const [startTime, endTime] = timeRange.split('-').map(t => t.trim());
+        const [title, timeRange] = eventText.trim().split(/\s+(?=\d)/);
+        const [startTime, endTime] = timeRange.split('-');
 
         const parseTime = (timeStr: string) => {
-          const [time, period] = timeStr.toLowerCase().match(/(\d{1,2}:\d{2})\s*(am|pm)/)?.slice(1) || [];
-          if (!time || !period) {
-            throw new Error(`Invalid time format: "${timeStr}". Expected format: "9:00 am" or "9:00 pm"`);
-          }
-
+          const [time, period] = timeStr.trim().split(' ');
           const [hours, minutes] = time.split(':').map(Number);
           const date = new Date();
-
-          // Convert to 24-hour format
-          let adjustedHours = hours;
-          if (period === 'pm' && hours !== 12) {
-            adjustedHours += 12;
-          } else if (period === 'am' && hours === 12) {
-            adjustedHours = 0;
-          }
-
-          date.setHours(adjustedHours, minutes || 0, 0, 0);
+          date.setHours(
+            period.toLowerCase() === 'pm' && hours !== 12 ? hours + 12 : hours,
+            minutes || 0
+          );
           return date;
         };
 
-        const start = parseTime(startTime);
-        const end = parseTime(endTime);
-
-        // Validate that end time is after start time
-        if (end <= start) {
-          throw new Error(`End time must be after start time for event: "${eventText.trim()}"`);
-        }
-
         return {
           title: title.trim(),
-          start,
-          end,
+          start: parseTime(startTime),
+          end: parseTime(endTime),
           user_id: req.user.id,
           color: "#3788d8",
           recurring: false,
-          category: null,
           shared_with: []
         };
       });
 
       console.log('Creating batch events:', events);
       const createdEvents = await Promise.all(
-        events.map(event => storage.createEvent(event))
+        events.map((event: any) => storage.createEvent(event))
       );
 
       console.log('Batch events created successfully');
@@ -155,7 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Failed to create batch events:', error);
       res.status(400).json({ 
-        message: (error as Error).message || "Failed to create events. Please use the format: 'Event Title 9:00 am-10:00 am'" 
+        message: "Failed to create events. Please use the format: 'Event Title 9:00 am-10:00 am'" 
       });
     }
   });
